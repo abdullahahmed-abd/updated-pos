@@ -3,7 +3,10 @@
   "private": true,
   "version": "1.0.0",
   "description": "POS Frontend Desktop App",
-  "author": "POS Team",
+  "author": {
+    "name": "Abdullah ahmed",
+    "email": "abdullahahmed8602@gmail.com"
+  },
   "main": "electron/main.js",
   "type": "module",
   "scripts": {
@@ -78,7 +81,8 @@
           "arch": ["x64"]
         }
       ],
-      "category": "Office"
+      "category": "Office",
+      "maintainer": "Abdullah ahmed <abdullahahmed8602@gmail.com>"
     }
   },
   "dependencies": {
