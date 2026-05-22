@@ -3,19 +3,21 @@ name: Build POS App - All Platforms
 on:
   push:
     tags:
-      - 'v*'           # v1.0.0 tag push hone par
-  workflow_dispatch:    # Manual trigger
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
-  # ╔══════════════════════════════╗
-  # ║      WINDOWS BUILD           ║
-  # ╚══════════════════════════════╝
   build-windows:
     runs-on: windows-latest
 
     steps:
       - name: ⬇️ Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
@@ -27,7 +29,7 @@ jobs:
         run: npm ci
 
       - name: 🏗️ Build Windows App
-        run: npm run electron:build:win
+        run: npm run electron:build:win:ci
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -38,17 +40,18 @@ jobs:
           path: |
             release/*.exe
             release/*.zip
+            release/*.blockmap
+          if-no-files-found: warn
           retention-days: 7
 
-  # ╔══════════════════════════════╗
-  # ║        MAC BUILD             ║
-  # ╚══════════════════════════════╝
   build-mac:
     runs-on: macos-latest
 
     steps:
       - name: ⬇️ Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
@@ -60,12 +63,10 @@ jobs:
         run: npm ci
 
       - name: 🏗️ Build Mac App
-        run: npm run electron:build:mac
+        run: npm run electron:build:mac:ci
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Apple signing optional hai - bina signing ke bhi chalega
-          # CSC_LINK: ${{ secrets.MAC_CERTIFICATE }}
-          # CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
 
       - name: 📤 Upload Mac Build
         uses: actions/upload-artifact@v4
@@ -74,17 +75,19 @@ jobs:
           path: |
             release/*.dmg
             release/*.zip
+            release/*.pkg
+            release/*.blockmap
+          if-no-files-found: warn
           retention-days: 7
 
-  # ╔══════════════════════════════╗
-  # ║       LINUX BUILD            ║
-  # ╚══════════════════════════════╝
   build-linux:
     runs-on: ubuntu-latest
 
     steps:
       - name: ⬇️ Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
@@ -92,11 +95,16 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: 📦 Install Dependencies
+      - name: 📦 Install Linux Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libarchive-tools rpm
+
+      - name: 📦 Install Node Dependencies
         run: npm ci
 
       - name: 🏗️ Build Linux App
-        run: npm run electron:build:linux
+        run: npm run electron:build:linux:ci
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -108,29 +116,47 @@ jobs:
             release/*.AppImage
             release/*.deb
             release/*.rpm
+            release/*.tar.gz
+            release/*.blockmap
+          if-no-files-found: warn
           retention-days: 7
 
-  # ╔══════════════════════════════╗
-  # ║     GITHUB RELEASE           ║
-  # ╚══════════════════════════════╝
   create-release:
     needs: [build-windows, build-mac, build-linux]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
 
     steps:
-      - name: ⬇️ Download All Artifacts
+      - name: ⬇️ Download Windows Artifacts
         uses: actions/download-artifact@v4
+        with:
+          name: windows-build
+          path: artifacts/windows
+
+      - name: ⬇️ Download Mac Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: mac-build
+          path: artifacts/mac
+
+      - name: ⬇️ Download Linux Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-build
+          path: artifacts/linux
 
       - name: 🚀 Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.ref_name }}
+          name: POS App ${{ github.ref_name }}
           files: |
-            windows-build/*
-            mac-build/*
-            linux-build/*
+            artifacts/windows/**/*
+            artifacts/mac/**/*
+            artifacts/linux/**/*
           draft: false
           prerelease: false
           generate_release_notes: true
+          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
