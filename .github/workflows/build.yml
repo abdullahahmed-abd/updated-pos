@@ -1,0 +1,136 @@
+name: Build POS App - All Platforms
+
+on:
+  push:
+    tags:
+      - 'v*'           # v1.0.0 tag push hone par
+  workflow_dispatch:    # Manual trigger
+
+jobs:
+  # ╔══════════════════════════════╗
+  # ║      WINDOWS BUILD           ║
+  # ╚══════════════════════════════╝
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: ⬇️ Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 📦 Install Dependencies
+        run: npm ci
+
+      - name: 🏗️ Build Windows App
+        run: npm run electron:build:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📤 Upload Windows Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build
+          path: |
+            release/*.exe
+            release/*.zip
+          retention-days: 7
+
+  # ╔══════════════════════════════╗
+  # ║        MAC BUILD             ║
+  # ╚══════════════════════════════╝
+  build-mac:
+    runs-on: macos-latest
+
+    steps:
+      - name: ⬇️ Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 📦 Install Dependencies
+        run: npm ci
+
+      - name: 🏗️ Build Mac App
+        run: npm run electron:build:mac
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Apple signing optional hai - bina signing ke bhi chalega
+          # CSC_LINK: ${{ secrets.MAC_CERTIFICATE }}
+          # CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+
+      - name: 📤 Upload Mac Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-build
+          path: |
+            release/*.dmg
+            release/*.zip
+          retention-days: 7
+
+  # ╔══════════════════════════════╗
+  # ║       LINUX BUILD            ║
+  # ╚══════════════════════════════╝
+  build-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⬇️ Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 📦 Install Dependencies
+        run: npm ci
+
+      - name: 🏗️ Build Linux App
+        run: npm run electron:build:linux
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📤 Upload Linux Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-build
+          path: |
+            release/*.AppImage
+            release/*.deb
+            release/*.rpm
+          retention-days: 7
+
+  # ╔══════════════════════════════╗
+  # ║     GITHUB RELEASE           ║
+  # ╚══════════════════════════════╝
+  create-release:
+    needs: [build-windows, build-mac, build-linux]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: ⬇️ Download All Artifacts
+        uses: actions/download-artifact@v4
+
+      - name: 🚀 Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            windows-build/*
+            mac-build/*
+            linux-build/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
