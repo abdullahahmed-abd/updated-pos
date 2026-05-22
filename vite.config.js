@@ -1,20 +1,29 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from "@tailwindcss/vite"
-// https://vite.dev/config/
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+
 export default defineConfig({
-  plugins: [react(),
-      tailwindcss(),
-      
-  ],
+  base: "./",
+  plugins: [react(), tailwindcss()],
   server: {
+    port: 5173,
+    strictPort: true,
     proxy: {
-      '/api': {
-        target: ['http://192.168.209.84:8081/','http://192.168.29.78:8080/'],
+      "/api": {
+        target: "http://192.168.209.84:8081", // proxy me single target rakho
         changeOrigin: true,
         secure: false,
       },
+    },
   },
- },
-}
-)
+  build: {
+    outDir: "dist",
+    emptyOutDir: true,
+    assetsDir: "assets",
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
+  },
+});

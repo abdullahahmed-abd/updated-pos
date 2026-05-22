@@ -1,7 +1,7 @@
 {
   "name": "pos_frontend_dev",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "POS Frontend Desktop App",
   "author": "POS Team",
   "main": "electron/main.js",

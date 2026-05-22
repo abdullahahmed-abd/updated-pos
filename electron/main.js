@@ -1,114 +1,122 @@
 // electron/main.js
-// ⚠️ NOTE: "type": "module" hai package.json me
-// isliye electron files CommonJS me hi likhni hain
-// electron-builder extraMetadata me "type": "commonjs" set kiya hai
+// NOTE: Root package.json me "type": "module" hai,
+// lekin electron-builder extraMetadata me "type": "commonjs" set hai,
+// isliye ye file CommonJS (require) me hi rahegi.
 
-const { app, BrowserWindow, shell, ipcMain } = require('electron')
-const path = require('path')
+const { app, BrowserWindow, shell, ipcMain } = require("electron");
+const path = require("path");
 
-const isDev = !app.isPackaged
+const isDev = !app.isPackaged;
 
 function createWindow() {
-  const isMac = process.platform === 'darwin'
-  const isWindows = process.platform === 'win32'
-  const isLinux = process.platform === 'linux'
+  const isMac = process.platform === "darwin";
 
   const mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
     minWidth: 1024,
     minHeight: 600,
-    backgroundColor: '#000000',
+    backgroundColor: "#000000",
 
-    // Mac me hidden titlebar, Windows/Linux me default
-    titleBarStyle: isMac ? 'hidden' : 'default',
+    titleBarStyle: isMac ? "hidden" : "default",
     frame: true,
     show: false,
     center: true,
 
-    // Mac traffic lights position
     ...(isMac && {
       trafficLightPosition: { x: 16, y: 16 },
     }),
 
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
     },
-  })
+  });
 
+  // ─────────────────────────────────────────────
+  // Debug helpers (black screen diagnose)
+  // ─────────────────────────────────────────────
+  mainWindow.webContents.on("did-fail-load", (e, code, desc, url) => {
+    console.log("did-fail-load:", code, desc, url);
+  });
+
+  mainWindow.webContents.on("render-process-gone", (event, details) => {
+    console.log("render-process-gone:", details);
+  });
+
+  mainWindow.webContents.on("unresponsive", () => {
+    console.log("Renderer became unresponsive");
+  });
+
+  // ─────────────────────────────────────────────
+  // Load URL / File
+  // ─────────────────────────────────────────────
   if (isDev) {
-    // Development mode
-    mainWindow.loadURL('http://localhost:5173')
-    mainWindow.webContents.openDevTools()
+    mainWindow.loadURL("http://localhost:5173");
+    mainWindow.webContents.openDevTools({ mode: "detach" });
   } else {
-    // Production mode
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'))
+    // IMPORTANT: packaged app me safest path
+    const indexPath = path.join(app.getAppPath(), "dist", "index.html");
+    console.log("Loading:", indexPath);
+
+    mainWindow.loadFile(indexPath);
+
+    // TEMP: black screen debug ke liye prod me bhi devtools khol do
+    // (issue fix ho jaye to is line ko remove kar dena)
+    mainWindow.webContents.openDevTools({ mode: "detach" });
   }
 
   // Ready hone par show karo
-  mainWindow.once('ready-to-show', () => {
-    mainWindow.show()
-  })
+  mainWindow.once("ready-to-show", () => {
+    mainWindow.show();
+  });
 
   // External links browser me open karo
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url)
-    return { action: 'deny' }
-  })
+    shell.openExternal(url);
+    return { action: "deny" };
+  });
 
   // Window controls IPC
-  ipcMain.on('minimize-window', () => {
-    mainWindow.minimize()
-  })
+  ipcMain.on("minimize-window", () => {
+    mainWindow.minimize();
+  });
 
-  ipcMain.on('maximize-window', () => {
-    if (mainWindow.isMaximized()) {
-      mainWindow.unmaximize()
-    } else {
-      mainWindow.maximize()
-    }
-  })
+  ipcMain.on("maximize-window", () => {
+    if (mainWindow.isMaximized()) mainWindow.unmaximize();
+    else mainWindow.maximize();
+  });
 
-  ipcMain.on('close-window', () => {
-    mainWindow.close()
-  })
+  ipcMain.on("close-window", () => {
+    mainWindow.close();
+  });
 
-  ipcMain.handle('get-version', () => {
-    return app.getVersion()
-  })
-
-  ipcMain.handle('get-platform', () => {
-    return process.platform
-  })
+  ipcMain.handle("get-version", () => app.getVersion());
+  ipcMain.handle("get-platform", () => process.platform);
 
   // Maximize state renderer ko batao
-  mainWindow.on('maximize', () => {
-    mainWindow.webContents.send('window-maximized', true)
-  })
+  mainWindow.on("maximize", () => {
+    mainWindow.webContents.send("window-maximized", true);
+  });
 
-  mainWindow.on('unmaximize', () => {
-    mainWindow.webContents.send('window-maximized', false)
-  })
+  mainWindow.on("unmaximize", () => {
+    mainWindow.webContents.send("window-maximized", false);
+  });
 }
 
 // App ready
 app.whenReady().then(() => {
-  createWindow()
+  createWindow();
 
-  // Mac me sab windows band ho jaye to dobara open karo
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow()
-    }
-  })
-})
+  // Mac me app active ho to window recreate
+  app.on("activate", () => {
+    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+  });
+});
 
-// Windows/Linux me sab windows band hone par app quit karo
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit()
-  }
-})
+// Windows/Linux me sab windows band hone par app quit
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") app.quit();
+});
