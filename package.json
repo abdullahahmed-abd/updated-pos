@@ -3,33 +3,38 @@
   "private": true,
   "version": "1.0.0",
   "description": "POS Frontend Desktop App",
+
   "author": {
     "name": "Abdullah Ahmed",
     "email": "abdullahahmed8602@gmail.com"
   },
+
   "main": "electron/main.js",
+
   "type": "module",
 
   "scripts": {
-  "dev": "vite",
-  "build": "vite build",
+    "dev": "vite",
 
-  "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
+    "build": "vite build",
 
-  "electron:build": "npm run build && electron-builder",
+    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
 
-  "electron:build:win": "npm run build && electron-builder --win",
+    "electron:build": "npm run build && electron-builder",
 
-  "electron:build:mac": "npm run build && electron-builder --mac",
+    "electron:build:win": "npm run build && electron-builder --win",
 
-  "electron:build:linux": "npm run build && electron-builder --linux",
+    "electron:build:mac": "npm run build && electron-builder --mac",
 
-  "electron:build:win:ci": "npm run build && electron-builder --win --publish=never",
+    "electron:build:linux": "npm run build && electron-builder --linux",
 
-  "electron:build:mac:ci": "npm run build && electron-builder --mac --publish=never",
+    "electron:build:win:ci": "npm run build && electron-builder --win --publish=never",
 
-  "electron:build:linux:ci": "npm run build && electron-builder --linux --publish=never"
-},
+    "electron:build:mac:ci": "npm run build && electron-builder --mac --publish=never",
+
+    "electron:build:linux:ci": "npm run build && electron-builder --linux --publish=never"
+  },
+
   "build": {
     "appId": "com.pos.frontend",
 
@@ -78,26 +83,35 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["universal"]
+          "arch": ["x64"]
         },
         {
-          "target": "zip",
-          "arch": ["universal"]
+          "target": "dmg",
+          "arch": ["arm64"]
         }
       ],
+
       "category": "public.app-category.business",
+
       "hardenedRuntime": false,
+
       "gatekeeperAssess": false,
-      "identity": null
+
+      "identity": null,
+
+      "artifactName": "${productName}-${version}-mac-${arch}.${ext}"
     },
 
     "dmg": {
       "title": "${productName} ${version}",
+
       "writeUpdateInfo": false,
+
       "window": {
         "width": 540,
         "height": 380
       },
+
       "contents": [
         {
           "x": 130,
@@ -128,7 +142,9 @@
           "arch": ["x64"]
         }
       ],
+
       "category": "Office",
+
       "maintainer": "Abdullah Ahmed <abdullahahmed8602@gmail.com>"
     }
   },
