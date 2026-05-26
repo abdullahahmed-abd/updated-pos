@@ -1,5 +1,4 @@
-// Product.jsx  (aap isko Main.jsx ki jagah bhi use kar sakte ho)
-// UI same rakha hai — sirf backend calls + refresh logic fix kiya hai
+// Product.jsx
 import axios from 'axios';
 import React, { useState, useEffect, useContext } from 'react';
 import Navbar from './Navbar.jsx';
@@ -19,6 +18,9 @@ const Main = () => {
   const [ismenu, setismenu] = useState(false);
   const [viewMode, setViewMode] = useState('row');
 
+  // ✅ NEW: Category filter state
+  const [selectedCategory, setSelectedCategory] = useState("ALL");
+
   const dataa = useContext(AppContext);
   const [
     token, settoken,
@@ -31,7 +33,7 @@ const Main = () => {
     description, setDescription,
     updateActive, setUpdateActive,
     variantName, setvariantName,
-    variantValue, setvariantValue,
+    variantValue, setvariantvalue,
     variantprice, setvariantprice,
     inventoryquantity, setinventoryquantity,
     inventorylocation, setinventorylocation,
@@ -43,7 +45,6 @@ const Main = () => {
 
   const navigate = useNavigate();
 
-  // ===================== API (NEW BACKEND) =====================
   const api = axios.create({
     baseURL: BaseUrl || "",
     headers: { 'ngrok-skip-browser-warning': 'true' },
@@ -54,7 +55,6 @@ const Main = () => {
   const variantRequest = (payload) => api.post('/variant', payload);
   const inventoryRequest = (payload) => api.post('/inventory', payload);
 
-  // ===================== ID helpers =====================
   const getProductId = (item) => {
     if (!item) return null;
     return item.productId ?? item.id ?? null;
@@ -76,59 +76,35 @@ const Main = () => {
     return inv.variantId ?? inv.productVariant?.id ?? inv.productVariant?.productVariantId ?? null;
   };
 
-  // ===================== Theme (UI SAME) =====================
   const theme = {
-    // Primary: Modern Blue
     primary: '#3B82F6',
     primaryLight: '#60A5FA',
     primaryDark: '#1E40AF',
-
-    // Secondary: Purple
     secondary: '#8B5CF6',
     secondaryLight: '#A78BFA',
-
-    // Accent: Teal
     accent: '#14B8A6',
     accentLight: '#2DD4BF',
-
-    // Danger: Rose
     danger: '#EF4444',
     dangerLight: '#F87171',
-
-    // Warning: Amber
     warning: '#F59E0B',
-
-    // Success: Emerald
     success: '#10B981',
     successLight: '#34D399',
-
-    // Background
     pageBg: '#F9FAFB',
     cardBg: '#FFFFFF',
-
-    // Text
     textPrimary: '#111827',
     textSecondary: '#374151',
     textMuted: '#9CA3AF',
     textOnPrimary: '#FFFFFF',
-
-    // Border
     border: '#E5E7EB',
     borderDark: '#D1D5DB',
-
-    // Gradients
     gradientPrimary: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
     gradientSecondary: 'linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%)',
     gradientSuccess: 'linear-gradient(135deg, #10B981 0%, #34D399 100%)',
     gradientDanger: 'linear-gradient(135deg, #EF4444 0%, #F87171 100%)',
-
-    // Shadows
     shadowSm: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
     shadowMd: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
     shadowLg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
     shadowXl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-
-    // Radius
     radiusSm: '6px',
     radiusMd: '8px',
     radiusLg: '12px',
@@ -137,19 +113,15 @@ const Main = () => {
     radiusFull: '9999px',
   };
 
-  // ===================== READ_ALL (ROBUST PARSE) =====================
   const getData = () => {
     if (!BaseUrl) return;
-
     productRequest({ requestType: "READ_ALL" })
       .then((res) => {
-        // backend kabhi direct array bhejta hai, kabhi {products:[]}
         const list =
           Array.isArray(res.data) ? res.data :
           Array.isArray(res.data?.products) ? res.data.products :
           Array.isArray(res.data?.data?.products) ? res.data.data.products :
           [];
-
         setData(list);
       })
       .catch((err) => console.log("Product fetch error:", err));
@@ -157,7 +129,6 @@ const Main = () => {
 
   const getcategorydata = () => {
     if (!BaseUrl) return;
-
     categoryRequest({ requestType: "READ_ALL" })
       .then((res) => {
         const list =
@@ -172,7 +143,6 @@ const Main = () => {
 
   const getvariantdata = () => {
     if (!BaseUrl) return;
-
     variantRequest({ requestType: "READ_ALL" })
       .then((res) => {
         const list =
@@ -187,7 +157,6 @@ const Main = () => {
 
   const getinventorydata = () => {
     if (!BaseUrl) return;
-
     inventoryRequest({ requestType: "READ_ALL" })
       .then((res) => {
         const list =
@@ -200,7 +169,6 @@ const Main = () => {
       .catch((err) => console.log("Inventory fetch error:", err));
   };
 
-  // IMPORTANT FIX: BaseUrl late aata hai + count refresh trigger
   useEffect(() => {
     if (!BaseUrl) return;
     getData();
@@ -217,15 +185,12 @@ const Main = () => {
 
   const getInitial = (name) => name ? name.charAt(0).toUpperCase() : '?';
 
-  // ===================== DELETE (NEW BACKEND) =====================
   const del = (product) => {
     const pid = getProductId(product);
     if (!pid) { window.alert("Product ID not found!"); return; }
-
     if (window.confirm("Are you sure you want to delete this product?")) {
       productRequest({ requestType: "DELETE", productId: Number(pid) })
         .then(() => {
-          // re-fetch
           getData();
           getvariantdata();
           getinventorydata();
@@ -234,20 +199,15 @@ const Main = () => {
     }
   };
 
-  // ===================== EDIT (prepares Additems update screen) =====================
   const edit = (v) => {
     const currentProductId = getProductId(v);
     if (!currentProductId) { window.alert("Product ID not found!"); return; }
 
-    // variants for this product
     const relatedVariants = variantdata
       .filter((variant) => String(getNestedProductId(variant)) === String(currentProductId))
       .map((variant) => {
         const vid = getVariantId(variant);
-
-        // try to attach inventory data as well (helps update screen)
         const inv = inventorydata.find((inv) => String(getInventoryVariantId(inv)) === String(vid));
-
         return {
           variantName: variant.variantName,
           variantValue: variant.variantValue,
@@ -260,36 +220,17 @@ const Main = () => {
       });
 
     setproductvariants(relatedVariants);
-
     setName(v.productName);
     setSku(v.sku);
-
-    // product.category may be object with id/name
     setCategoryId(getCategoryId(v.category));
-
     setDescription(v.description);
-
     setUpdateActive(true);
     setproductId(currentProductId);
-
     navigate('/Additems');
   };
 
-  const filterdata = data.filter((product) =>
-    product.productName?.toLowerCase().includes(searchvalue.toLowerCase())
-  );
-
-  let sortproduct = [...filterdata].sort((min, max) => {
-    if (sort === "min-max") return (min.price || 0) - (max.price || 0);
-    else if (sort === "max-min") return (max.price || 0) - (min.price || 0);
-    return 0;
-  });
-
   const getCategoryName = (product) => {
-    // if product has category object
     if (product?.category?.name) return product.category.name;
-
-    // sometimes id field is "id" not "categoryId"
     const catId = getCategoryId(product?.category);
     if (catId) {
       const found = categorydata.find(c => String(getCategoryId(c)) === String(catId));
@@ -297,6 +238,28 @@ const Main = () => {
     }
     return "Unknown";
   };
+
+  // ✅ Get category ID from product for filtering
+  const getProductCategoryId = (product) => {
+    return getCategoryId(product?.category) ?? null;
+  };
+
+  // ✅ FILTER: search + category
+  const filterdata = data.filter((product) => {
+    const matchesSearch = product.productName?.toLowerCase().includes(searchvalue.toLowerCase());
+
+    const matchesCategory =
+      selectedCategory === "ALL" ||
+      String(getProductCategoryId(product)) === String(selectedCategory);
+
+    return matchesSearch && matchesCategory;
+  });
+
+  let sortproduct = [...filterdata].sort((min, max) => {
+    if (sort === "min-max") return (min.price || 0) - (max.price || 0);
+    else if (sort === "max-min") return (max.price || 0) - (min.price || 0);
+    return 0;
+  });
 
   const safeId = (product) => getProductId(product) || Math.random();
 
@@ -349,12 +312,10 @@ const Main = () => {
           100% { background-position: 200% center; }
         }
 
-        /* ===== ROW CARD ===== */
         .row-card {
           animation: slideInRow 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
           transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
           backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
         }
         .row-card:hover {
           transform: translateX(8px) scale(1.015);
@@ -363,31 +324,13 @@ const Main = () => {
           z-index: 20;
           background: #FFFFFFee;
         }
-        .row-card:hover .row-avatar {
-          transform: scale(1.15) rotate(-8deg);
-          box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
-        }
+        .row-card:hover .row-avatar { transform: scale(1.15) rotate(-8deg); box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5); }
         .row-card:hover .row-name { color: #3B82F6; }
-        .row-card:hover .row-left-accent {
-          width: 6px;
-          box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
-        }
-        .row-card:hover .row-stat {
-          transform: translateY(-2px);
-          box-shadow: 0 3px 10px rgba(59, 130, 246, 0.15);
-        }
-        .row-card:hover .row-edit {
-          transform: translateY(-2px) scale(1.06);
-          box-shadow: 0 6px 18px rgba(59, 130, 246, 0.45);
-        }
-        .row-card:hover .row-delete {
-          transform: translateY(-2px) scale(1.06);
-          box-shadow: 0 6px 18px rgba(239, 68, 68, 0.45);
-        }
-        .row-card:hover .row-view {
-          transform: translateY(-2px) scale(1.06);
-          box-shadow: 0 6px 18px rgba(139, 92, 246, 0.35);
-        }
+        .row-card:hover .row-left-accent { width: 6px; box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
+        .row-card:hover .row-stat { transform: translateY(-2px); box-shadow: 0 3px 10px rgba(59, 130, 246, 0.15); }
+        .row-card:hover .row-edit { transform: translateY(-2px) scale(1.06); box-shadow: 0 6px 18px rgba(59, 130, 246, 0.45); }
+        .row-card:hover .row-delete { transform: translateY(-2px) scale(1.06); box-shadow: 0 6px 18px rgba(239, 68, 68, 0.45); }
+        .row-card:hover .row-view { transform: translateY(-2px) scale(1.06); box-shadow: 0 6px 18px rgba(139, 92, 246, 0.35); }
         .row-card:hover .row-desc { color: #111827; }
         .row-card:hover .row-shine { transform: translateX(110%); opacity: 0.1; }
 
@@ -397,22 +340,17 @@ const Main = () => {
         .row-stat { transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
         .row-desc { transition: color 0.3s ease; }
         .row-shine { transition: all 0.8s ease; }
-
         .row-edit { transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
         .row-edit:hover { transform: translateY(-3px) scale(1.12) !important; box-shadow: 0 8px 24px rgba(59, 130, 246, 0.55) !important; }
-        .row-edit:active { transform: translateY(0) scale(1.02) !important; }
         .row-delete { transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
         .row-delete:hover { transform: translateY(-3px) scale(1.12) !important; box-shadow: 0 8px 24px rgba(239, 68, 68, 0.55) !important; }
-        .row-delete:active { transform: translateY(0) scale(1.02) !important; }
         .row-view { transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
         .row-view:hover { transform: translateY(-3px) scale(1.12) !important; box-shadow: 0 8px 24px rgba(139, 92, 246, 0.45) !important; }
 
-        /* ===== GRID CARD ===== */
         .grid-card {
           animation: cardDrop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
           transition: all 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
           backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
         }
         .grid-card:hover {
           transform: translateY(-14px) scale(1.04);
@@ -433,22 +371,16 @@ const Main = () => {
 
         .grid-avatar { transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); overflow: visible !important; }
         .grid-avatar-inner { transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); line-height: 1 !important; }
-
         .grid-card:hover .grid-avatar {
-          width: 30px !important;
-          height: 30px !important;
-          bottom: 4px !important;
-          left: 18px !important;
+          width: 30px !important; height: 30px !important;
+          bottom: 4px !important; left: 18px !important;
           transform: scale(1.5) rotate(-17deg);
           box-shadow: 0 16px 50px rgba(59, 130, 246, 0.75);
-          border-width: 2px;
-          border-color: #60A5FA;
+          border-width: 2px; border-color: #60A5FA;
         }
         .grid-card:hover .grid-avatar-inner {
-          font-size: 20px !important;
-          font-weight: 600 !important;
-          transform: rotate(17deg);
-          letter-spacing: -1px;
+          font-size: 20px !important; font-weight: 600 !important;
+          transform: rotate(17deg); letter-spacing: -1px;
         }
 
         .grid-header-bg { transition: all 0.5s ease; }
@@ -483,13 +415,30 @@ const Main = () => {
 
         .total-badge { animation: float 4s ease-in-out infinite; }
 
+        /* ✅ Category filter chip styles */
+        .cat-chip {
+          transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+          cursor: pointer;
+          user-select: none;
+        }
+        .cat-chip:hover {
+          transform: translateY(-2px) scale(1.05);
+          box-shadow: 0 4px 14px rgba(59, 130, 246, 0.3);
+        }
+        .cat-chip-active {
+          background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%) !important;
+          color: white !important;
+          border-color: #3B82F6 !important;
+          box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+        }
+
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #F9FAFB; }
         ::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: rgba(59, 130, 246, 0.6); }
       `}</style>
 
-      {/* ===== ANIMATED BLUR BACKGROUND ===== */}
+      {/* Blobs */}
       <div style={{
         position: 'fixed', inset: 0, overflow: 'hidden',
         pointerEvents: 'none', zIndex: 0,
@@ -498,16 +447,14 @@ const Main = () => {
           position: 'absolute', top: '-120px', right: '-120px',
           width: '500px', height: '500px',
           background: 'radial-gradient(circle, #1E40AF40, #3B82F615, transparent 65%)',
-          borderRadius: '50%',
-          filter: 'blur(80px)',
+          borderRadius: '50%', filter: 'blur(80px)',
           animation: 'blob1 10s ease-in-out infinite',
         }} />
         <div style={{
           position: 'absolute', bottom: '-150px', left: '-150px',
           width: '550px', height: '550px',
           background: 'radial-gradient(circle, #60A5FA35, #10B98112, transparent 65%)',
-          borderRadius: '50%',
-          filter: 'blur(90px)',
+          borderRadius: '50%', filter: 'blur(90px)',
           animation: 'blob2 12s ease-in-out infinite',
         }} />
         <div style={{
@@ -515,32 +462,28 @@ const Main = () => {
           width: '450px', height: '450px',
           marginLeft: '-225px', marginTop: '-225px',
           background: 'radial-gradient(circle, #8B5CF625, #60A5FA08, transparent 65%)',
-          borderRadius: '50%',
-          filter: 'blur(100px)',
+          borderRadius: '50%', filter: 'blur(100px)',
           animation: 'blob3 14s ease-in-out infinite',
         }} />
         <div style={{
           position: 'absolute', top: '10%', left: '8%',
           width: '300px', height: '300px',
           background: 'radial-gradient(circle, #34D39928, transparent 65%)',
-          borderRadius: '50%',
-          filter: 'blur(70px)',
+          borderRadius: '50%', filter: 'blur(70px)',
           animation: 'blob4 16s ease-in-out infinite',
         }} />
         <div style={{
           position: 'absolute', bottom: '5%', right: '10%',
           width: '350px', height: '350px',
           background: 'radial-gradient(circle, #1E40AF22, transparent 65%)',
-          borderRadius: '50%',
-          filter: 'blur(75px)',
+          borderRadius: '50%', filter: 'blur(75px)',
           animation: 'blob5 13s ease-in-out infinite',
         }} />
         <div style={{
           position: 'absolute', top: '60%', left: '15%',
           width: '200px', height: '200px',
           background: 'radial-gradient(circle, #3B82F618, transparent 70%)',
-          borderRadius: '50%',
-          filter: 'blur(60px)',
+          borderRadius: '50%', filter: 'blur(60px)',
           animation: 'blob1 18s ease-in-out infinite reverse',
         }} />
         <div style={{
@@ -548,8 +491,7 @@ const Main = () => {
           width: '280px', height: '280px',
           marginLeft: '-140px',
           background: 'radial-gradient(circle, #A78BFA15, transparent 70%)',
-          borderRadius: '50%',
-          filter: 'blur(65px)',
+          borderRadius: '50%', filter: 'blur(65px)',
           animation: 'blob2 15s ease-in-out infinite reverse',
         }} />
         <div style={{
@@ -566,7 +508,7 @@ const Main = () => {
         sortdata={setsort}
       />
 
-      {/* ===== TOP BAR - Blurred Glass ===== */}
+      {/* Top Bar */}
       <div style={{
         position: 'fixed', top: '70px', left: 0, right: 0, zIndex: 30,
         padding: '14px 28px',
@@ -577,9 +519,9 @@ const Main = () => {
         borderBottom: '1px solid #E5E7EB35',
         boxShadow: '0 4px 20px #3B82F608',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           <div className="total-badge" style={{
-            background: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)', color: '#FFFFFF',
+            background: theme.gradientPrimary, color: '#FFFFFF',
             borderRadius: '9999px', padding: '7px 20px',
             fontSize: '13px', fontWeight: '700',
             boxShadow: '0 4px 14px #3B82F640',
@@ -590,14 +532,35 @@ const Main = () => {
             </svg>
             {sortproduct.length} Products
           </div>
+
           {searchvalue && (
             <div style={{
               background: '#F59E0B15', color: '#F59E0B',
               borderRadius: '9999px', padding: '6px 16px',
               fontSize: '12px', fontWeight: '600', border: '1px solid #F59E0B25',
-              backdropFilter: 'blur(10px)',
             }}>
               🔍 "{searchvalue}"
+            </div>
+          )}
+
+          {selectedCategory !== "ALL" && (
+            <div style={{
+              background: '#10B98115', color: '#10B981',
+              borderRadius: '9999px', padding: '6px 16px',
+              fontSize: '12px', fontWeight: '700', border: '1px solid #10B98125',
+              display: 'flex', alignItems: 'center', gap: '6px',
+            }}>
+              📁 {categorydata.find(c => String(getCategoryId(c)) === String(selectedCategory))?.name || selectedCategory}
+              <span
+                onClick={() => setSelectedCategory("ALL")}
+                style={{
+                  cursor: 'pointer', marginLeft: '4px',
+                  fontWeight: 900, fontSize: '14px',
+                  color: '#EF4444',
+                }}
+              >
+                ×
+              </span>
             </div>
           )}
         </div>
@@ -642,10 +605,93 @@ const Main = () => {
         </div>
       </div>
 
-      {/* ===== CONTENT AREA ===== */}
+      {/* ✅ CATEGORY FILTER CHIPS BAR */}
+      <div style={{
+        position: 'fixed', top: '132px', left: 0, right: 0, zIndex: 29,
+        padding: '10px 28px',
+        background: '#F9FAFBcc',
+        backdropFilter: 'blur(20px) saturate(160%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(160%)',
+        borderBottom: '1px solid #E5E7EB30',
+        display: 'flex', alignItems: 'center', gap: '8px',
+        overflowX: 'auto',
+      }}>
+        <div style={{
+          fontSize: '11px', fontWeight: 800, color: theme.textMuted,
+          textTransform: 'uppercase', letterSpacing: '1px',
+          marginRight: '4px', flexShrink: 0,
+        }}>
+          Filter:
+        </div>
+
+        {/* ALL chip */}
+        <div
+          className={`cat-chip ${selectedCategory === "ALL" ? "cat-chip-active" : ""}`}
+          onClick={() => setSelectedCategory("ALL")}
+          style={{
+            padding: '6px 16px',
+            borderRadius: '9999px',
+            fontSize: '12px',
+            fontWeight: 700,
+            border: `1.5px solid ${selectedCategory === "ALL" ? theme.primary : theme.border}`,
+            background: selectedCategory === "ALL" ? "" : '#FFFFFF',
+            color: selectedCategory === "ALL" ? "" : theme.textSecondary,
+            flexShrink: 0,
+          }}
+        >
+          All ({data.length})
+        </div>
+
+        {/* Dynamic category chips */}
+        {categorydata.map((cat) => {
+          const catId = String(getCategoryId(cat));
+          const catName = cat.name || cat.categoryName || "Unknown";
+          const isActive = String(selectedCategory) === catId;
+
+          // Count products in this category
+          const catCount = data.filter(
+            (p) => String(getProductCategoryId(p)) === catId
+          ).length;
+
+          return (
+            <div
+              key={catId}
+              className={`cat-chip ${isActive ? "cat-chip-active" : ""}`}
+              onClick={() => setSelectedCategory(isActive ? "ALL" : catId)}
+              style={{
+                padding: '6px 16px',
+                borderRadius: '9999px',
+                fontSize: '12px',
+                fontWeight: 700,
+                border: `1.5px solid ${isActive ? theme.primary : theme.border}`,
+                background: isActive ? "" : '#FFFFFF',
+                color: isActive ? "" : theme.textSecondary,
+                flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              {catName}
+              <span style={{
+                background: isActive ? 'rgba(255,255,255,0.3)' : 'rgba(59,130,246,0.1)',
+                borderRadius: '9999px',
+                padding: '1px 8px',
+                fontSize: '10px',
+                fontWeight: 900,
+                color: isActive ? 'white' : theme.primary,
+              }}>
+                {catCount}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Content */}
       <div onClick={() => { setismenu(false) }} style={{
         width: '100%',
-        padding: '165px 28px 100px 28px',
+        padding: '210px 28px 100px 28px',
         minHeight: '100vh', position: 'relative', zIndex: 10,
         ...(viewMode === 'grid' ? {
           display: 'flex', flexWrap: 'wrap', gap: '24px',
@@ -681,7 +727,7 @@ const Main = () => {
                 >
                   <div className="row-left-accent" style={{
                     width: '4px', alignSelf: 'stretch',
-                    background: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)', flexShrink: 0,
+                    background: theme.gradientPrimary, flexShrink: 0,
                   }} />
 
                   <div className="row-shine" style={{
@@ -695,7 +741,7 @@ const Main = () => {
                   <div style={{ padding: '14px 0 14px 16px', flexShrink: 0 }}>
                     <div className="row-avatar" style={{
                       width: '48px', height: '48px',
-                      background: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)', borderRadius: '14px',
+                      background: theme.gradientPrimary, borderRadius: '14px',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: '20px', fontWeight: '800', color: '#FFFFFF',
                       boxShadow: '0 4px 14px #3B82F640',
@@ -734,7 +780,6 @@ const Main = () => {
                       fontSize: '11px', fontWeight: '700',
                       border: '1px solid #3B82F620', whiteSpace: 'nowrap',
                       display: 'flex', alignItems: 'center', gap: '5px',
-                      backdropFilter: 'blur(6px)',
                     }}>
                       <svg style={{ width: '12px', height: '12px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
@@ -747,7 +792,6 @@ const Main = () => {
                       border: '1.5px solid #3B82F615',
                       borderRadius: '8px',
                       padding: '6px 14px', textAlign: 'center', minWidth: '70px',
-                      backdropFilter: 'blur(6px)',
                     }}>
                       <div style={{ fontSize: '16px', fontWeight: '800', color: '#3B82F6', lineHeight: 1 }}>
                         {variantCount}
@@ -790,7 +834,7 @@ const Main = () => {
 
                     <button className="row-edit" onClick={() => edit(v)} style={{
                       width: '36px', height: '36px',
-                      background: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)', border: 'none', borderRadius: '8px',
+                      background: theme.gradientPrimary, border: 'none', borderRadius: '8px',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       cursor: 'pointer', boxShadow: '0 3px 10px #3B82F635',
                     }}>
@@ -801,7 +845,7 @@ const Main = () => {
 
                     <button className="row-delete" onClick={() => del(v)} style={{
                       width: '36px', height: '36px',
-                      background: 'linear-gradient(135deg, #EF4444 0%, #F87171 100%)', border: 'none', borderRadius: '8px',
+                      background: theme.gradientDanger, border: 'none', borderRadius: '8px',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       cursor: 'pointer', boxShadow: '0 3px 10px #EF444435',
                     }}>
@@ -813,7 +857,6 @@ const Main = () => {
                 </div>
               );
             } else {
-              // ===== GRID VIEW (same as your UI) =====
               return (
                 <div
                   key={currentId}
@@ -830,7 +873,7 @@ const Main = () => {
                 >
                   <div style={{ position: 'relative', overflow: 'hidden' }}>
                     <div className="grid-header-bg" style={{
-                      height: '80px', background: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)', position: 'relative',
+                      height: '80px', background: theme.gradientPrimary, position: 'relative',
                     }}>
                       <div style={{
                         position: 'absolute', inset: 0,
@@ -880,7 +923,7 @@ const Main = () => {
                     }}>
                       <div className="grid-avatar-inner" style={{
                         width: '100%', height: '100%',
-                        background: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)', borderRadius: '11px',
+                        background: theme.gradientPrimary, borderRadius: '11px',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontSize: '18px', fontWeight: '800', color: '#FFFFFF',
                         lineHeight: 1,
@@ -912,7 +955,6 @@ const Main = () => {
                         <div className="grid-stat" style={{
                           background: '#3B82F60a', border: '1.5px solid #3B82F615',
                           borderRadius: '8px', padding: '8px', textAlign: 'center',
-                          backdropFilter: 'blur(6px)',
                         }}>
                           <div style={{ fontSize: '18px', fontWeight: '800', color: '#3B82F6', lineHeight: 1 }}>
                             {variantCount}
@@ -924,7 +966,6 @@ const Main = () => {
                         <div className="grid-stat" style={{
                           background: '#F59E0B0a', border: '1.5px solid #F59E0B15',
                           borderRadius: '8px', padding: '8px', textAlign: 'center',
-                          backdropFilter: 'blur(6px)',
                         }}>
                           <div style={{ fontSize: '13px', fontWeight: '700', color: '#F59E0B', lineHeight: '1.2', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {catName}
@@ -955,7 +996,7 @@ const Main = () => {
 
                   <div style={{ padding: '0 20px 16px 20px', display: 'flex', gap: '8px', position: 'relative', zIndex: 3 }}>
                     <button className="grid-edit" onClick={() => edit(v)} style={{
-                      flex: 1, background: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)', color: '#FFFFFF',
+                      flex: 1, background: theme.gradientPrimary, color: '#FFFFFF',
                       border: 'none', borderRadius: '8px',
                       padding: '10px 0', fontWeight: '600', fontSize: '12px',
                       cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
@@ -967,7 +1008,7 @@ const Main = () => {
                       Edit
                     </button>
                     <button className="grid-delete" onClick={() => del(v)} style={{
-                      flex: 1, background: 'linear-gradient(135deg, #EF4444 0%, #F87171 100%)', color: '#FFFFFF',
+                      flex: 1, background: theme.gradientDanger, color: '#FFFFFF',
                       border: 'none', borderRadius: '8px',
                       padding: '10px 0', fontWeight: '600', fontSize: '12px',
                       cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
@@ -981,7 +1022,7 @@ const Main = () => {
                   </div>
 
                   <div className="grid-bottom-line" style={{
-                    height: '3px', width: '0%', background: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
+                    height: '3px', width: '0%', background: theme.gradientPrimary,
                     margin: '0 auto', borderRadius: '3px 3px 0 0', opacity: 0,
                   }} />
                 </div>
@@ -1006,23 +1047,42 @@ const Main = () => {
               </svg>
             </div>
             <h3 style={{ color: '#111827', fontSize: '22px', fontWeight: '800', margin: '0 0 8px 0' }}>
-              No Products Yet
+              {selectedCategory !== "ALL" ? "No Products in this Category" : "No Products Yet"}
             </h3>
             <p style={{ color: '#9CA3AF', fontSize: '14px', margin: '0 0 24px 0' }}>
-              Add your first product to get started
+              {selectedCategory !== "ALL"
+                ? "Try selecting a different category or clear the filter"
+                : "Add your first product to get started"
+              }
             </p>
-            <NavLink to={'Additems'} onClick={() => { setUpdateActive(false) }} style={{
-              background: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)', color: '#FFFFFF',
-              borderRadius: '9999px', padding: '14px 32px',
-              fontWeight: '700', fontSize: '14px', textDecoration: 'none',
-              display: 'flex', alignItems: 'center', gap: '8px',
-              boxShadow: '0 6px 24px #3B82F645',
-            }}>
-              <svg style={{ width: '18px', height: '18px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              Add Product
-            </NavLink>
+            {selectedCategory !== "ALL" ? (
+              <button
+                onClick={() => setSelectedCategory("ALL")}
+                style={{
+                  background: theme.gradientPrimary, color: '#FFFFFF',
+                  borderRadius: '9999px', padding: '14px 32px',
+                  fontWeight: '700', fontSize: '14px', border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  boxShadow: '0 6px 24px #3B82F645',
+                }}
+              >
+                Show All Products
+              </button>
+            ) : (
+              <NavLink to={'Additems'} onClick={() => { setUpdateActive(false) }} style={{
+                background: theme.gradientPrimary, color: '#FFFFFF',
+                borderRadius: '9999px', padding: '14px 32px',
+                fontWeight: '700', fontSize: '14px', textDecoration: 'none',
+                display: 'flex', alignItems: 'center', gap: '8px',
+                boxShadow: '0 6px 24px #3B82F645',
+              }}>
+                <svg style={{ width: '18px', height: '18px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add Product
+              </NavLink>
+            )}
           </div>
         )}
       </div>
@@ -1030,7 +1090,7 @@ const Main = () => {
       {/* FAB */}
       {sortproduct.length > 0 && (
         <NavLink to={'Additems'} className="add-fab" style={{
-          background: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)', color: '#FFFFFF',
+          background: theme.gradientPrimary, color: '#FFFFFF',
           border: 'none', borderRadius: '9999px',
           padding: '16px 28px', fontWeight: '700', fontSize: '14px',
           cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
@@ -1048,4 +1108,4 @@ const Main = () => {
   );
 };
 
-export default Main;  
+export default Main;

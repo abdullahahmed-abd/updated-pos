@@ -4,41 +4,55 @@
   "version": "1.0.0",
   "description": "POS Frontend Desktop App",
   "author": {
-    "name": "Abdullah ahmed",
+    "name": "Abdullah Ahmed",
     "email": "abdullahahmed8602@gmail.com"
   },
   "main": "electron/main.js",
   "type": "module",
+
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview",
+
     "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
+
     "electron:build": "npm run build && electron-builder",
+
     "electron:build:win": "npm run build && electron-builder --win",
-    "electron:build:mac": "npm run build && electron-builder --mac",
+
+    "electron:build:mac": "npm run build && electron-builder --mac universal",
+
     "electron:build:linux": "npm run build && electron-builder --linux",
+
     "electron:build:win:ci": "npm run build && electron-builder --win --publish=never",
-    "electron:build:mac:ci": "npm run build && electron-builder --mac --publish=never",
+
+    "electron:build:mac:ci": "npm run build && electron-builder --mac universal --publish=never",
+
     "electron:build:linux:ci": "npm run build && electron-builder --linux --publish=never"
   },
+
   "build": {
     "appId": "com.pos.frontend",
-    "productName": "POS App",
+
+    "productName": "POSApp",
+
     "asar": true,
+
     "directories": {
       "output": "release"
     },
+
     "files": [
       "dist/**/*",
       "electron/**/*",
       "package.json"
     ],
+
     "extraMetadata": {
       "main": "electron/main.js",
       "type": "commonjs"
     },
+
     "win": {
       "target": [
         {
@@ -56,44 +70,51 @@
         }
       ]
     },
+
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "allowElevation": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "POS App"
+      "shortcutName": "POSApp"
     },
+
     "mac": {
       "target": [
         {
           "target": "dmg",
           "arch": [
-            "x64",
-            "arm64"
+            "universal"
           ]
         },
         {
           "target": "zip",
           "arch": [
-            "x64",
-            "arm64"
+            "universal"
           ]
         }
       ],
+
       "category": "public.app-category.business",
-      "hardenedRuntime": true,
+
+      "hardenedRuntime": false,
+
       "gatekeeperAssess": false,
-      "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist",
+
       "identity": null
     },
+
     "dmg": {
       "title": "${productName} ${version}",
+
+      "writeUpdateInfo": false,
+
       "window": {
         "width": 540,
         "height": 380
       },
+
       "contents": [
         {
           "x": 130,
@@ -108,6 +129,7 @@
         }
       ]
     },
+
     "linux": {
       "target": [
         {
@@ -129,10 +151,13 @@
           ]
         }
       ],
+
       "category": "Office",
-      "maintainer": "Abdullah ahmed <abdullahahmed8602@gmail.com>"
+
+      "maintainer": "Abdullah Ahmed <abdullahahmed8602@gmail.com>"
     }
   },
+
   "dependencies": {
     "@tailwindcss/vite": "^4.1.7",
     "axios": "^1.9.0",
@@ -146,6 +171,7 @@
     "react-select": "^5.10.2",
     "react-toastify": "^11.0.5"
   },
+
   "devDependencies": {
     "@eslint/js": "^9.25.0",
     "@types/react": "^19.1.2",
