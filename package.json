@@ -97,7 +97,7 @@
 
       "gatekeeperAssess": false,
 
-      "identity": null,
+      "identity": "-",
 
       "artifactName": "${productName}-${version}-mac-${arch}.${ext}"
     },

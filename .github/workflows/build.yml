@@ -64,11 +64,19 @@ jobs:
       - name: 📦 Install Dependencies
         run: npm ci
 
-      - name: 🏗️ Build Universal Mac App
+      - name: 🏗️ Build Mac App (Ad-hoc Signed)
         run: npm run electron:build:mac:ci
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: ✅ Verify Ad-hoc Signature
+        run: |
+          echo "🔍 Checking app signature..."
+          find release/mac* -name "*.app" -maxdepth 2 -type d 2>/dev/null | while read app; do
+            echo "📦 App: $app"
+            codesign -dv --verbose=4 "$app" 2>&1 || echo "⚠️ Signature check failed"
+            echo "---"
+          done
 
       - name: 📤 Upload Mac Build
         uses: actions/upload-artifact@v4
@@ -156,24 +164,59 @@ jobs:
           name: POSApp ${{ github.ref_name }}
 
           body: |
-            ## POSApp Downloads
+            ## 📦 POSApp Downloads
+
+            ---
 
             ### 🍎 macOS
-            If app does not open:
 
-            Open terminal and run:
+            **Download the correct file for your Mac:**
+            - **Apple Silicon (M1/M2/M3):** `POSApp-x.x.x-mac-arm64.dmg`
+            - **Intel Mac:** `POSApp-x.x.x-mac-x64.dmg`
 
-            xattr -cr /Applications/POSApp.app
+            **Installation:**
+            1. Open the DMG file
+            2. Drag **POSApp** to **Applications** folder
+            3. Open **Applications** folder
+            4. **Right-click** on POSApp → Click **"Open"**
+            5. Click **"Open"** in the warning dialog
+            6. ✅ App will launch
 
+            **If app still does not open, run this in Terminal:**
+            ```
+            sudo xattr -cr /Applications/POSApp.app
+            ```
             Then open app again.
 
+            ---
+
             ### 🪟 Windows
+
+            - **Installer:** `POSApp Setup x.x.x.exe`
+            - **Portable:** `POSApp x.x.x.exe`
+
             If SmartScreen warning appears:
-            More Info → Run Anyway
+            **More Info → Run Anyway**
+
+            ---
 
             ### 🐧 Linux
-            chmod +x POSApp.AppImage
-            ./POSApp.AppImage
+
+            **AppImage:**
+            ```
+            chmod +x POSApp-x.x.x.AppImage
+            ./POSApp-x.x.x.AppImage
+            ```
+
+            **Debian / Ubuntu:**
+            ```
+            sudo dpkg -i pos_frontend_dev_x.x.x_amd64.deb
+            ```
+
+            **Fedora / RHEL:**
+            ```
+            sudo rpm -i pos_frontend_dev-x.x.x.x86_64.rpm
+            ```
 
           files: |
             artifacts/windows/**/*
